@@ -159,3 +159,4 @@ nohup.out
 *.su
 *.mod.c
 
+.DS_Store
