@@ -47,6 +47,30 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
 )
 
+# ───────────────────────── TinyUSB sources ─────────────────────────
+set(TINYUSB_DIR ${CMAKE_SOURCE_DIR}/extern/tinyusb/src)
+
+set(TINYUSB_SOURCES
+        # Core
+        ${TINYUSB_DIR}/tusb.c
+        ${TINYUSB_DIR}/common/tusb_fifo.c
+
+        # Device stack
+        ${TINYUSB_DIR}/device/usbd.c
+        ${TINYUSB_DIR}/device/usbd_control.c
+
+        # HID class
+        ${TINYUSB_DIR}/class/hid/hid_device.c
+
+        # DCD for STM32 OTG FS (Synopsys DWC2)
+        ${TINYUSB_DIR}/portable/synopsys/dwc2/dcd_dwc2.c
+        ${TINYUSB_DIR}/portable/synopsys/dwc2/dwc2_common.c
+)
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+        ${TINYUSB_SOURCES}
+)
+
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
