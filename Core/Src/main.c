@@ -92,7 +92,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_PWREx_EnableVddUSB();
+  __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+  HAL_NVIC_SetPriority(OTG_FS_IRQn, 5, 0);
   /* USER CODE END 2 */
 
   /* Init scheduler */

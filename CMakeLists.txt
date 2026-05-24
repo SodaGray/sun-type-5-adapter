@@ -69,6 +69,7 @@ set(TINYUSB_SOURCES
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         ${TINYUSB_SOURCES}
+        App/usb_descriptors.c
 )
 
 # Add include paths
