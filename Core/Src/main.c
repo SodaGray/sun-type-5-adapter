@@ -20,6 +20,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "usart.h"
+#include "usb_otg.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -91,10 +92,13 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
+  MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
-  HAL_PWREx_EnableVddUSB();
-  __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
-  HAL_NVIC_SetPriority(OTG_FS_IRQn, 5, 0);
+  /* HAL_PCD_MspInit (in usb_otg.c) enables OTG_FS_IRQn at NVIC level.
+   * Defer until tusb_init() completes in the USB task, to handle the
+   * bus-powered cold-start case (USB physically attached when MCU boots)
+   * without a window where interrupts arrive before TinyUSB is ready. */
+  HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
   /* USER CODE END 2 */
 
   /* Init scheduler */

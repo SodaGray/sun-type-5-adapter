@@ -161,7 +161,7 @@ void StartUsbTask(void *argument)
   tusb_init(0, &dev_init);
 
   USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;
-
+  HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
   /* RTOS forever loop */
   for(;;)
   {
@@ -185,19 +185,16 @@ void tud_umount_cb(void)
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 }
 
-/* Invoked when USB bus is suspended (host puts device into low power) */
 void tud_suspend_cb(bool remote_wakeup_en)
 {
   (void) remote_wakeup_en;
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+  /* Don't turn off LD2 on suspend - device is still mounted, just idle.
+   * Only umount should turn off LD2. */
 }
 
-/* Invoked when USB bus is resumed */
 void tud_resume_cb(void)
 {
-  if (tud_mounted()) {
-    HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-  }
+  (void) 0;  /* LD2 stays on - was already on from mount */
 }
 
 /*-----------------------------------------------------------*/
