@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,6 +94,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   /* USER CODE BEGIN 2 */
+  setvbuf(stdout, NULL, _IONBF, 0); // Turning off buffer
   /* HAL_PCD_MspInit (in usb_otg.c) enables OTG_FS_IRQn at NVIC level.
    * Defer until tusb_init() completes in the USB task, to handle the
    * bus-powered cold-start case (USB physically attached when MCU boots)
@@ -187,7 +188,8 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 int __io_putchar(int ch)
 {
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  uint8_t c = (uint8_t)ch;
+  HAL_UART_Transmit(&huart2, &c, 1, HAL_MAX_DELAY);
   return ch;
 }
 /* USER CODE END 4 */

@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include "cmsis_os2.h"
 #include "ring_buf.h"
-#include "stm32l4xx_hal_uart.h"
 
 /* Notification flag bits used to wake the consumer task.
  * Bit-based so multiple event sources can multiplex onto
@@ -34,6 +33,5 @@ bool sun_io_get_byte(uint8_t *out);
  * Convenient for "drain everything" loops in the consumer task. */
 bool sun_io_has_data(void);
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 
 #endif /* SUN_IO_H */
