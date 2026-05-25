@@ -183,6 +183,11 @@ void StartUsbTask(void *argument)
   }
 }
 
+/**
+ * @brief Start the keyboard task
+ *
+ * Drains the ring buffer.
+ */
 void StartSunKeyboardTask(void *argument)
 {
   (void)argument;

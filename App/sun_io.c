@@ -43,6 +43,35 @@ bool sun_io_has_data(void)
     return !ring_buf_is_empty(&rb);
 }
 
+/**
+ * @brief HAL UART RX complete callback — Sun keyboard byte handler.
+ *
+ * Overrides HAL's __weak function of the same name. HAL's USART ISR
+ * invokes this after each completed receive (length=1, armed by
+ * sun_io_init and re-armed at the end of this callback).
+ *
+ * The callback is *global* across all UARTs configured in the system,
+ * so this implementation filters by @c huart->Instance and acts only
+ * for USART1.
+ *
+ * Runs in ISR context. Four-step sequence:
+ *   1. Filter for USART1 (other UARTs may share this callback).
+ *   2. Push the received byte into the SPSC ring buffer.
+ *   3. Signal the consumer task via @c osThreadFlagsSet (ISR-safe
+ *      CMSIS-RTOS V2 wrapper; internally yields if a higher-priority
+ *      task is woken).
+ *   4. Re-arm @c HAL_UART_Receive_IT for the next byte — HAL receive
+ *      is one-shot; without this, reception silently stops after the
+ *      first byte.
+ *
+ * @param huart The UART handle that triggered the callback. May be any
+ *              UART; this function only acts for &huart1.
+ *
+ * @warning Step 4 (re-arm) is the most common omission in this pattern.
+ *          Symptom: exactly one byte received, then permanent silence.
+ * @note Do not add lengthy work — ISR context. All real processing
+ *       happens in the consumer task.
+ */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance != USART1) return;

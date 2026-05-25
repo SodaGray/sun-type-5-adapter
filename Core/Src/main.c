@@ -186,6 +186,30 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+ * @brief Override newlib's putchar; redirect printf to VCP (USART2).
+ *
+ * newlib's @c printf / @c puts / etc. eventually call @c _write(),
+ * which in turn calls @c __io_putchar() one character at a time.
+ * @c __io_putchar is declared @c __weak in syscalls.c with an empty
+ * body — defining this strong version overrides it and routes
+ * character output to USART2 (the ST-LINK VCP).
+ *
+ * Uses blocking @c HAL_UART_Transmit. Safe to invoke from task context
+ * (including from any task that calls printf).
+ *
+ * @param ch The character to output (passed as @c int per C89 convention;
+ *           only the low byte is used).
+ * @return The character output (i.e. @p ch), so callers can detect EOF
+ *         or chain calls.
+ *
+ * @warning Blocking transmission — do NOT call printf from ISR context.
+ *          ~87 µs per char at 115200 baud; a typical "0x%02X\r\n"
+ *          blocks for ~500 µs.
+ * @note Disabling stdout buffering via @c setvbuf(stdout, NULL, _IONBF, 0)
+ *       at startup makes each printf flush immediately — useful for
+ *       interleaved debug output.
+ */
 int __io_putchar(int ch)
 {
   uint8_t c = (uint8_t)ch;
