@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "tusb.h"
+#include "sun_io.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +53,12 @@ const osThreadAttr_t usbTask_attributes = {
   .stack_size = 1024 * 4,                       /* 4 KB stack */
   .priority = (osPriority_t) osPriorityRealtime,/* Highest - USB has strict timing */
 };
+osThreadId_t sunKeyboardTaskHandle;
+const osThreadAttr_t sunKeyboardTask_attributes = {
+  .name = "sunKbd",
+  .stack_size = 2048,
+  .priority = osPriorityAboveNormal,
+};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -64,6 +71,7 @@ const osThreadAttr_t defaultTask_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 void StartUsbTask(void *argument);
+void StartSunKeyboardTask(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
@@ -103,6 +111,12 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_THREADS */
   /* creation of usbTask */
   usbTaskHandle = osThreadNew(StartUsbTask, NULL, &usbTask_attributes);
+  sunKeyboardTaskHandle = osThreadNew(StartSunKeyboardTask, NULL, &sunKeyboardTask_attributes);
+  if (!sun_io_init(sunKeyboardTaskHandle)) {
+    /* sun_io_init 失败 —— HAL_UART_Receive_IT 没起来
+     * 这里可以 Error_Handler() 或 LED 闪烁告警
+     * 目前先什么都不做，sunKeyboardTask 会一直 wait 没有通知 */
+  }
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -166,6 +180,24 @@ void StartUsbTask(void *argument)
   for(;;)
   {
     tud_task();
+  }
+}
+
+void StartSunKeyboardTask(void *argument)
+{
+  (void)argument;
+
+  for (;;) {
+    /* 阻塞等任意 sun_io 通知位被 set */
+    osThreadFlagsWait(SUN_IO_NOTIFY_RX_AVAILABLE,
+                      osFlagsWaitAny,
+                      osWaitForever);
+
+    /* 排空 ring buffer——一次唤醒可能对应多字节 */
+    uint8_t byte;
+    while (sun_io_get_byte(&byte)) {
+      printf("0x%02X\r\n", byte);
+    }
   }
 }
 
