@@ -200,62 +200,72 @@ void StartSunKeyboardTask(void *argument)
   hid_keyboard_init(&kbd);
 
   for (;;) {
-    osThreadFlagsWait(SUN_IO_NOTIFY_RX_AVAILABLE, osFlagsWaitAny, osWaitForever);
+    uint32_t flags = osThreadFlagsWait(
+        SUN_IO_NOTIFY_RX_AVAILABLE | SUN_IO_NOTIFY_LED_PENDING,
+        osFlagsWaitAny,
+        osWaitForever);
 
-    uint8_t byte;
-    while (sun_io_get_byte(&byte)) {
-      sun_event_t ev = sun_protocol_decode_byte(&parser, byte);
-      switch (ev.type) {
+    if (flags & SUN_IO_NOTIFY_RX_AVAILABLE)
+    {
+      uint8_t byte;
+      while (sun_io_get_byte(&byte)) {
+        sun_event_t ev = sun_protocol_decode_byte(&parser, byte);
+        switch (ev.type) {
 
-      case SUN_EVENT_MAKE: {
-          sun_key_t k = sun_keymap_lookup(ev.data);
-          switch (k.kind) {
-          case SUN_KEY_KIND_KEYBOARD:
-            hid_keyboard_press_key(&kbd, (uint8_t)k.code);
+        case SUN_EVENT_MAKE: {
+            sun_key_t k = sun_keymap_lookup(ev.data);
+            switch (k.kind) {
+            case SUN_KEY_KIND_KEYBOARD:
+              hid_keyboard_press_key(&kbd, (uint8_t)k.code);
+              break;
+            case SUN_KEY_KIND_MODIFIER:
+              hid_keyboard_press_modifier(&kbd, (uint8_t)k.code);
+              break;
+            case SUN_KEY_KIND_CONSUMER:
+            case SUN_KEY_KIND_SYSTEM:
+              /* TODO Phase 5+: 实现 hid_consumer / hid_system 模块 */
+              printf("UNIMPL kind=%d code=0x%04X\r\n", k.kind, k.code);
+              break;
+            case SUN_KEY_KIND_NONE:
+              break;
+            }
             break;
-          case SUN_KEY_KIND_MODIFIER:
-            hid_keyboard_press_modifier(&kbd, (uint8_t)k.code);
+        }
+
+        case SUN_EVENT_BREAK: {
+            sun_key_t k = sun_keymap_lookup(ev.data);
+            switch (k.kind) {
+            case SUN_KEY_KIND_KEYBOARD:
+              hid_keyboard_release_key(&kbd, (uint8_t)k.code);
+              break;
+            case SUN_KEY_KIND_MODIFIER:
+              hid_keyboard_release_modifier(&kbd, (uint8_t)k.code);
+              break;
+            case SUN_KEY_KIND_CONSUMER:
+            case SUN_KEY_KIND_SYSTEM:
+              /* TODO Phase 5+ */
+              break;
+            case SUN_KEY_KIND_NONE:
+              break;
+            }
             break;
-          case SUN_KEY_KIND_CONSUMER:
-          case SUN_KEY_KIND_SYSTEM:
-            /* TODO Phase 5+: 实现 hid_consumer / hid_system 模块 */
-            printf("UNIMPL kind=%d code=0x%04X\r\n", k.kind, k.code);
-            break;
-          case SUN_KEY_KIND_NONE:
-            break;
-          }
+        }
+
+        case SUN_EVENT_ALL_KEYS_UP:
+        case SUN_EVENT_RESET:
+          hid_keyboard_reset(&kbd);
+          /* TODO Phase 5+: 同时 reset hid_consumer_state, hid_system_state */
           break;
-      }
 
-      case SUN_EVENT_BREAK: {
-          sun_key_t k = sun_keymap_lookup(ev.data);
-          switch (k.kind) {
-          case SUN_KEY_KIND_KEYBOARD:
-            hid_keyboard_release_key(&kbd, (uint8_t)k.code);
-            break;
-          case SUN_KEY_KIND_MODIFIER:
-            hid_keyboard_release_modifier(&kbd, (uint8_t)k.code);
-            break;
-          case SUN_KEY_KIND_CONSUMER:
-          case SUN_KEY_KIND_SYSTEM:
-            /* TODO Phase 5+ */
-            break;
-          case SUN_KEY_KIND_NONE:
-            break;
-          }
+        case SUN_EVENT_UNKNOWN:
+        case SUN_EVENT_NONE:
           break;
+        }
       }
+    }
 
-      case SUN_EVENT_ALL_KEYS_UP:
-      case SUN_EVENT_RESET:
-        hid_keyboard_reset(&kbd);
-        /* TODO Phase 5+: 同时 reset hid_consumer_state, hid_system_state */
-        break;
-
-      case SUN_EVENT_UNKNOWN:
-      case SUN_EVENT_NONE:
-        break;
-      }
+    if (flags & SUN_IO_NOTIFY_LED_PENDING) {
+      sun_io_flush_led();
     }
   }
 }
@@ -322,8 +332,9 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
   (void) buffer;
   (void) bufsize;
 
-  /* TODO: parse buffer[0] for keyboard LED bitmap and forward to
-   * Sun keyboard via USART1 (Sun command 0x0E followed by LED bitmap). */
+  if (report_type == HID_REPORT_TYPE_OUTPUT && bufsize >= 1) {
+    sun_io_request_led(buffer[0]);
+  }
 }
 
 /* USER CODE END Application */

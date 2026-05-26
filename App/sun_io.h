@@ -14,7 +14,7 @@
  * a single task notification (future: LED state change).
  */
 #define SUN_IO_NOTIFY_RX_AVAILABLE   (1u << 0)
-/* SUN_IO_NOTIFY_LED_PENDING reserved for Phase 2+ */
+#define SUN_IO_NOTIFY_LED_PENDING    (1u << 1)
 
 /**
  * @brief Initialize the Sun keyboard input subsystem.
@@ -60,5 +60,30 @@ bool sun_io_get_byte(uint8_t *out);
  */
 bool sun_io_has_data(void);
 
+/**
+ * Request the keyboard LEDs be updated.
+ *
+ * Stores the HID LED bitmap (last write wins) and notifies the consumer
+ * task via SUN_IO_NOTIFY_LED_PENDING. Safe to call from any context
+ * (intended use: USB SET_REPORT callback).
+ *
+ * @param hid_led_bitmap HID Output report byte 0 (per HID 1.11):
+ *                       bit 0 = NumLock, bit 1 = CapsLock,
+ *                       bit 2 = ScrollLock, bit 3 = Compose.
+ */
+void sun_io_request_led(uint8_t hid_led_bitmap);
+
+/**
+ * Flush pending LED state to the keyboard via USART1 TX.
+ *
+ * Translates HID LED bits to Sun LED bits and transmits the
+ * 2-byte command (0x0E + sun_led_byte). Blocking — at 1200 baud
+ * the 2 bytes take ~16.7 ms.
+ *
+ * Called by sunKeyboardTask when SUN_IO_NOTIFY_LED_PENDING is observed
+ * in the thread flags. Safe to call multiple times; each call sends
+ * one command reflecting the latest requested state.
+ */
+void sun_io_flush_led(void);
 
 #endif /* SUN_IO_H */

@@ -25,6 +25,7 @@
 
 #include "stm32l4xx_hal.h"
 #include "tusb.h"
+#include "sun_io.h"
 
 /* A combination of interfaces must have a unique product id, since PC will save device driver after the first plug.
  * Same VID/PID with different interface e.g MSC (first), then CDC (later) will possibly cause system error on PC.

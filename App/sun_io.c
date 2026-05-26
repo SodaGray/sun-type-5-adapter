@@ -19,6 +19,8 @@ static ring_buf_t rb;
 static osThreadId_t recorded_consumer_task;
 static uint8_t rx_byte;
 
+static volatile uint8_t pending_led;   /* 由 USB callback 写、task 读 */
+
 bool sun_io_init(osThreadId_t consumer_task)
 {
     ring_buf_init(&rb);
@@ -80,3 +82,24 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     HAL_UART_Receive_IT(&huart1, &rx_byte, 1);
 }
 
+void sun_io_request_led(uint8_t hid_led_bitmap)
+{
+    pending_led = hid_led_bitmap;
+    osThreadFlagsSet(recorded_consumer_task, SUN_IO_NOTIFY_LED_PENDING);
+}
+
+void sun_io_flush_led(void)
+{
+    uint8_t hid = pending_led;
+
+    /* HID → Sun bit 重新排列 */
+    uint8_t sun_led = 0;
+    if (hid & 0x01) sun_led |= 0x01;   /* NumLock     HID 0 → Sun 0 */
+    if (hid & 0x02) sun_led |= 0x08;   /* CapsLock    HID 1 → Sun 3 */
+    if (hid & 0x04) sun_led |= 0x04;   /* ScrollLock  HID 2 → Sun 2 */
+    if (hid & 0x08) sun_led |= 0x02;   /* Compose     HID 3 → Sun 1 */
+
+    /* 发送 2 字节命令到 USART1（反相已硬件配好，不用关心） */
+    uint8_t cmd[2] = { 0x0E, sun_led };
+    HAL_UART_Transmit(&huart1, cmd, 2, HAL_MAX_DELAY);
+}
