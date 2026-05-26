@@ -4,8 +4,6 @@
 
 作为《智能网联电子系统综合设计》课程的结课作业发布。
 
-除了 `CMakeLists.txt` 文件以外，本项目不包含任何 AI 生成的代码。
-
 基础代码由 STM32CubeMX 和 FreeRTOS 提供。 
 
 Sun, Sun Microsystems, and Sun Type 5 are trademarks or registered trademarks of Oracle and/or its affiliates.
