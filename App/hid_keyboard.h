@@ -8,6 +8,7 @@
 #define HID_KEYBOARD_H
 
 #include <stdint.h>
+#include "cmsis_os2.h"
 
 /**
  * HID Boot Keyboard 状态。

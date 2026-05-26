@@ -85,6 +85,17 @@ static void send_if_changed(hid_keyboard_state_t *s)
         return;
     }
 
+    /* 主机没接的话，更新 last_report 但不发，让后续真发的时候按"新状态"基线对比 */
+    if (!tud_mounted()) {
+        memcpy(s->last_report, report, 8);
+        return;
+    }
+
+    /* 等到 endpoint 空闲再发——保证报告真正进队列 */
+    while (!tud_hid_ready()) {
+        osDelay(1);
+    }
+
     /* 通过 TinyUSB 发出。fire-and-forget，不查返回值。 */
     tud_hid_keyboard_report(0, report[0], &report[2]);
 

@@ -117,7 +117,7 @@ uint8_t const desc_configuration[] =
   TUD_HID_INOUT_DESCRIPTOR(ITF_NUM_HID, 0, HID_ITF_PROTOCOL_KEYBOARD,
                           sizeof(desc_hid_report),
                           EPNUM_HID_OUT, EPNUM_HID_IN,    // ← 注意是 OUT 先、IN 后
-                          CFG_TUD_HID_EP_BUFSIZE, 10)
+                          CFG_TUD_HID_EP_BUFSIZE, 1)
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
