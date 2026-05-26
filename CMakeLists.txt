@@ -74,6 +74,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/sun_io.c
         App/sun_protocol.c
         App/sun_keymap.c
+        App/hid_keyboard.c
 )
 
 # Add include paths

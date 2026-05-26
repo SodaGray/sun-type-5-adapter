@@ -29,6 +29,7 @@
 #include "sun_io.h"
 #include "sun_protocol.h"
 #include "sun_keymap.h"
+#include "hid_keyboard.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -193,60 +194,66 @@ void StartUsbTask(void *argument)
 void StartSunKeyboardTask(void *argument)
 {
   (void)argument;
-  sun_protocol_t sun_protocol;
-  sun_event_t event;
-  sun_protocol_init(&sun_protocol);
+  sun_protocol_t parser;
+  hid_keyboard_state_t kbd;
+  sun_protocol_init(&parser);
+  hid_keyboard_init(&kbd);
 
   for (;;) {
-    /* 阻塞等任意 sun_io 通知位被 set */
-    osThreadFlagsWait(SUN_IO_NOTIFY_RX_AVAILABLE,
-                      osFlagsWaitAny,
-                      osWaitForever);
+    osThreadFlagsWait(SUN_IO_NOTIFY_RX_AVAILABLE, osFlagsWaitAny, osWaitForever);
 
-    /* 排空 ring buffer——一次唤醒可能对应多字节 */
     uint8_t byte;
     while (sun_io_get_byte(&byte)) {
-      event = sun_protocol_decode_byte(&sun_protocol, byte);
-      switch (event.type) {
-      case SUN_EVENT_NONE:
-        break;
+      sun_event_t ev = sun_protocol_decode_byte(&parser, byte);
+      switch (ev.type) {
 
       case SUN_EVENT_MAKE: {
-          sun_key_t k = sun_keymap_lookup(event.data);
-          if (k.modifier_mask) {
-            printf("MAKE  mod 0x%02X\r\n", k.modifier_mask);
-          } else if (k.hid_usage) {
-            printf("MAKE  HID 0x%02X\r\n", k.hid_usage);
-          } else {
-            printf("MAKE  unmapped scan 0x%02X\r\n", event.data);
-          }
-          break;
-      }
-      case SUN_EVENT_BREAK: {
-          sun_key_t k = sun_keymap_lookup(event.data);
-          if (k.modifier_mask) {
-            printf("BREAK mod 0x%02X\r\n", k.modifier_mask);
-          } else if (k.hid_usage) {
-            printf("BREAK HID 0x%02X\r\n", k.hid_usage);
-          } else {
-            printf("BREAK unmapped scan 0x%02X\r\n", event.data);
+          sun_key_t k = sun_keymap_lookup(ev.data);
+          switch (k.kind) {
+          case SUN_KEY_KIND_KEYBOARD:
+            hid_keyboard_press_key(&kbd, (uint8_t)k.code);
+            break;
+          case SUN_KEY_KIND_MODIFIER:
+            hid_keyboard_press_modifier(&kbd, (uint8_t)k.code);
+            break;
+          case SUN_KEY_KIND_CONSUMER:
+          case SUN_KEY_KIND_SYSTEM:
+            /* TODO Phase 5+: 实现 hid_consumer / hid_system 模块 */
+            printf("UNIMPL kind=%d code=0x%04X\r\n", k.kind, k.code);
+            break;
+          case SUN_KEY_KIND_NONE:
+            break;
           }
           break;
       }
 
-      case SUN_EVENT_RESET:
-        printf("Keyboard Reset! Layout ID: 0x%02X\r\n", event.data);
-        break;
+      case SUN_EVENT_BREAK: {
+          sun_key_t k = sun_keymap_lookup(ev.data);
+          switch (k.kind) {
+          case SUN_KEY_KIND_KEYBOARD:
+            hid_keyboard_release_key(&kbd, (uint8_t)k.code);
+            break;
+          case SUN_KEY_KIND_MODIFIER:
+            hid_keyboard_release_modifier(&kbd, (uint8_t)k.code);
+            break;
+          case SUN_KEY_KIND_CONSUMER:
+          case SUN_KEY_KIND_SYSTEM:
+            /* TODO Phase 5+ */
+            break;
+          case SUN_KEY_KIND_NONE:
+            break;
+          }
+          break;
+      }
 
       case SUN_EVENT_ALL_KEYS_UP:
-        printf("All keys up!\r\n");
+      case SUN_EVENT_RESET:
+        hid_keyboard_reset(&kbd);
+        /* TODO Phase 5+: 同时 reset hid_consumer_state, hid_system_state */
         break;
 
       case SUN_EVENT_UNKNOWN:
-        printf("Warning: Unknown byte: 0x%02X\r\n", event.data);
-        break;
-
-      default:
+      case SUN_EVENT_NONE:
         break;
       }
     }
