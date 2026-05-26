@@ -27,6 +27,8 @@
 /* USER CODE BEGIN Includes */
 #include "tusb.h"
 #include "sun_io.h"
+#include "sun_protocol.h"
+#include "sun_keymap.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -191,6 +193,9 @@ void StartUsbTask(void *argument)
 void StartSunKeyboardTask(void *argument)
 {
   (void)argument;
+  sun_protocol_t sun_protocol;
+  sun_event_t event;
+  sun_protocol_init(&sun_protocol);
 
   for (;;) {
     /* 阻塞等任意 sun_io 通知位被 set */
@@ -201,7 +206,49 @@ void StartSunKeyboardTask(void *argument)
     /* 排空 ring buffer——一次唤醒可能对应多字节 */
     uint8_t byte;
     while (sun_io_get_byte(&byte)) {
-      printf("0x%02X\r\n", byte);
+      event = sun_protocol_decode_byte(&sun_protocol, byte);
+      switch (event.type) {
+      case SUN_EVENT_NONE:
+        break;
+
+      case SUN_EVENT_MAKE: {
+          sun_key_t k = sun_keymap_lookup(event.data);
+          if (k.modifier_mask) {
+            printf("MAKE  mod 0x%02X\r\n", k.modifier_mask);
+          } else if (k.hid_usage) {
+            printf("MAKE  HID 0x%02X\r\n", k.hid_usage);
+          } else {
+            printf("MAKE  unmapped scan 0x%02X\r\n", event.data);
+          }
+          break;
+      }
+      case SUN_EVENT_BREAK: {
+          sun_key_t k = sun_keymap_lookup(event.data);
+          if (k.modifier_mask) {
+            printf("BREAK mod 0x%02X\r\n", k.modifier_mask);
+          } else if (k.hid_usage) {
+            printf("BREAK HID 0x%02X\r\n", k.hid_usage);
+          } else {
+            printf("BREAK unmapped scan 0x%02X\r\n", event.data);
+          }
+          break;
+      }
+
+      case SUN_EVENT_RESET:
+        printf("Keyboard Reset! Layout ID: 0x%02X\r\n", event.data);
+        break;
+
+      case SUN_EVENT_ALL_KEYS_UP:
+        printf("All keys up!\r\n");
+        break;
+
+      case SUN_EVENT_UNKNOWN:
+        printf("Warning: Unknown byte: 0x%02X\r\n", event.data);
+        break;
+
+      default:
+        break;
+      }
     }
   }
 }

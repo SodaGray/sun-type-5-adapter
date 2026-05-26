@@ -72,6 +72,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/usb_descriptors.c
         App/ring_buf.c
         App/sun_io.c
+        App/sun_protocol.c
+        App/sun_keymap.c
 )
 
 # Add include paths
