@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "spi.h"
 #include "usart.h"
 #include "usb_otg.h"
 #include "gpio.h"
@@ -26,6 +27,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include "w25q.h"
+#include "sun_io.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,6 +96,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   setvbuf(stdout, NULL, _IONBF, 0); // Turning off buffer
   /* HAL_PCD_MspInit (in usb_otg.c) enables OTG_FS_IRQn at NVIC level.
@@ -100,6 +104,10 @@ int main(void)
    * bus-powered cold-start case (USB physically attached when MCU boots)
    * without a window where interrupts arrive before TinyUSB is ready. */
   HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
+
+  w25q_init();
+  uint32_t id = w25q_read_id();
+  printf("W25Q JEDEC ID: 0x%06lX\r\n", (unsigned long)id);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -215,6 +223,16 @@ int __io_putchar(int ch)
   uint8_t c = (uint8_t)ch;
   HAL_UART_Transmit(&huart2, &c, 1, HAL_MAX_DELAY);
   return ch;
+}
+
+/**
+ * @brief Processing user key stroke.
+ */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == B1_USER_Pin) {
+    sun_io_request_reset();
+  }
 }
 /* USER CODE END 4 */
 

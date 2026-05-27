@@ -15,6 +15,7 @@
  */
 #define SUN_IO_NOTIFY_RX_AVAILABLE   (1u << 0)
 #define SUN_IO_NOTIFY_LED_PENDING    (1u << 1)
+#define SUN_IO_NOTIFY_RESET_PENDING  (1u << 2)
 
 /**
  * @brief Initialize the Sun keyboard input subsystem.
@@ -85,5 +86,22 @@ void sun_io_request_led(uint8_t hid_led_bitmap);
  * one command reflecting the latest requested state.
  */
 void sun_io_flush_led(void);
+
+/**
+ * Request a Sun reset command (0x01) be sent to the keyboard.
+ *
+ * Notifies the consumer task via SUN_IO_NOTIFY_RESET_PENDING.
+ * Safe to call from any context including ISR — used from the
+ * USER button EXTI handler.
+ */
+void sun_io_request_reset(void);
+
+/**
+ * Send the Sun reset command byte (0x01) over USART1 TX.
+ *
+ * Called by sunKeyboardTask when SUN_IO_NOTIFY_RESET_PENDING is
+ * observed. Blocking; ~8.3 ms at 1200 baud.
+ */
+void sun_io_flush_reset(void);
 
 #endif /* SUN_IO_H */

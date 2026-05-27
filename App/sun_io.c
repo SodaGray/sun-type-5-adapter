@@ -103,3 +103,13 @@ void sun_io_flush_led(void)
     uint8_t cmd[2] = { 0x0E, sun_led };
     HAL_UART_Transmit(&huart1, cmd, 2, HAL_MAX_DELAY);
 }
+
+void sun_io_request_reset(void)
+{
+    osThreadFlagsSet(recorded_consumer_task, SUN_IO_NOTIFY_RESET_PENDING);
+}
+
+void sun_io_flush_reset(void)
+{
+    HAL_UART_Transmit(&huart1, &(uint8_t){0x01}, 1, HAL_MAX_DELAY);
+}

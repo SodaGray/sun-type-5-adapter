@@ -201,7 +201,7 @@ void StartSunKeyboardTask(void *argument)
 
   for (;;) {
     uint32_t flags = osThreadFlagsWait(
-        SUN_IO_NOTIFY_RX_AVAILABLE | SUN_IO_NOTIFY_LED_PENDING,
+        SUN_IO_NOTIFY_RX_AVAILABLE | SUN_IO_NOTIFY_LED_PENDING | SUN_IO_NOTIFY_RESET_PENDING,
         osFlagsWaitAny,
         osWaitForever);
 
@@ -264,8 +264,15 @@ void StartSunKeyboardTask(void *argument)
       }
     }
 
-    if (flags & SUN_IO_NOTIFY_LED_PENDING) {
+    if (flags & SUN_IO_NOTIFY_LED_PENDING)
+    {
       sun_io_flush_led();
+    }
+
+    if (flags & SUN_IO_NOTIFY_RESET_PENDING)
+    {
+      sun_io_flush_reset();
+      hid_keyboard_reset(&kbd);
     }
   }
 }
