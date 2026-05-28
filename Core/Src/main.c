@@ -106,8 +106,7 @@ int main(void)
   HAL_NVIC_DisableIRQ(OTG_FS_IRQn);
 
   w25q_init();
-  uint32_t id = w25q_read_id();
-  printf("W25Q JEDEC ID: 0x%06lX\r\n", (unsigned long)id);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
