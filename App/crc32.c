@@ -11,3 +11,18 @@ uint32_t crc32_compute(const void *data, size_t len)
 {
     return HAL_CRC_Calculate(&hcrc, (uint32_t*) data, len) ^ 0xFFFFFFFFu;
 }
+
+void crc32_begin(void)
+{
+    __HAL_CRC_DR_RESET(&hcrc);
+}
+
+void crc32_update(const void *data, size_t len)
+{
+    HAL_CRC_Accumulate(&hcrc, (uint32_t*)data, len);
+}
+
+uint32_t crc32_end(void)
+{
+    return hcrc.Instance->DR ^ 0xFFFFFFFFu;
+}

@@ -51,4 +51,27 @@
  */
 uint32_t crc32_compute(const void *data, size_t len);
 
+/**
+ * @brief Reset the CRC accumulator to the init value (0xFFFFFFFF).
+ *        Begins a new streaming CRC computation.
+ * @warning Not ISR-safe / not concurrent (shared hardware DR).
+ */
+void crc32_begin(void);
+
+/**
+ * @brief Feed a chunk into the running CRC (continues from current state).
+ *        Calling update(A) then update(B) yields the same result as
+ *        a single update over (A concatenated with B).
+ * @param data  chunk buffer
+ * @param len   chunk length in bytes
+ */
+void crc32_update(const void *data, size_t len);
+
+/**
+ * @brief Finalize and return the standard CRC32.
+ *        Reads the (output-reflected) DR and applies the final
+ *        XOR with 0xFFFFFFFF.
+ */
+uint32_t crc32_end(void);
+
 #endif /* CRC32_H */
