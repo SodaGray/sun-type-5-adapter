@@ -77,6 +77,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/hid_keyboard.c
         App/w25q.c
         App/crc32.c
+        App/sector_io.c
 )
 
 # Add include paths
