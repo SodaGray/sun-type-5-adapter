@@ -78,6 +78,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/w25q.c
         App/crc32.c
         App/sector_io.c
+        App/storage.c
 )
 
 # Add include paths
