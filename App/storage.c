@@ -2,6 +2,9 @@
 // Created by Cherry on 2026/5/31.
 //
 
+#define SECTOR_NONE  0xFFFFu
+#define DIR_NONE 0xFFFFu
+
 #include "storage.h"
 #include "sector_io.h"
 #include "crc32.h"
@@ -118,21 +121,21 @@ bool storage_mount(void)
         }
 
         // 推进全局序列号生成器,确保下一次 save 拿到的号码绝对唯一且递增。
-        // 放在 liveness 检查之前:obsolete 但合法的对象也要计入,
+        // 放在 liveness 检查之前：obsolete 但合法的对象也要计入,
         // 才能保证 next_seq > 所有 OBJECT 序号。
         if (header.sequence >= next_seq)
         {
             next_seq = header.sequence + 1;
         }
 
-        // 原子生命周期审查:历史旧数据、或写一半断电的 FRESH 数据,都视为废弃等 GC
+        // 原子生命周期审查：历史旧数据、或写一半断电的 FRESH 数据,都视为废弃等 GC
         if (!STATE_IS_LIVE(header.state_byte))
         {
             slot_state[idx] = SLOT_RECLAIM;
             continue;
         }
 
-        // 到这里,此扇区持有一个合法且已提交的 Live 对象。开始冲突裁决:
+        // 到这里，此扇区持有一个合法且已提交的 Live 对象。开始冲突裁决:
         int found_idx = -1;
         for (uint16_t d = 0; d < directory_count; d++)
         {
@@ -157,8 +160,8 @@ bool storage_mount(void)
             }
             else
             {
-                // 目录已满:正常不会发生(save 会在 256 上限处拒绝新对象)。
-                // 真撞上=flash 上 live 对象数超过 RAM 目录容量,此对象将被丢弃。
+                // 目录已满：正常不会发生(save 会在 256 上限处拒绝新对象)。
+                // 如果确实发生，flash 上 live 对象数超过 RAM 目录容量,此对象将被丢弃。
                 printf("storage_mount: directory full, discarding type=%u inst=%u\r\n",
                        header.type, header.instance);
                 slot_state[idx] = SLOT_RECLAIM;
@@ -171,7 +174,7 @@ bool storage_mount(void)
 
             if (header.sequence > directory[found_idx].sequence)
             {
-                // 当前扇区更新,新数据胜出
+                // 当前扇区更新
                 slot_state[old_sector] = SLOT_RECLAIM;
                 directory[found_idx].sector = idx;
                 directory[found_idx].sequence = header.sequence;
@@ -187,43 +190,221 @@ bool storage_mount(void)
     return true;
 }
 
-/* ============================================================
- * 步骤 4-6 待实现 —— 先留桩,使文件可链接
- * ============================================================ */
+
+static uint16_t alloc_free_sector(void)
+{
+    uint32_t min_ec = 0xFFFFFFFFu;
+    uint16_t sector = SECTOR_NONE;
+    for (uint16_t i = 0; i < W25Q_SECTOR_COUNT; i++)
+    {
+        if (slot_state[i] != SLOT_FREE) continue;
+        if (erase_count[i] < min_ec)
+        {
+            min_ec = erase_count[i];
+            sector = i;
+        }
+    }
+
+    return sector;
+}
+
+static uint16_t directory_find(uint16_t type, uint16_t instance)
+{
+    for (uint16_t idx = 0; idx < directory_count; idx++)
+    {
+        if (directory[idx].type == type && directory[idx].instance == instance)
+        {
+            return idx;
+        }
+    }
+    return DIR_NONE;
+}
+
+static bool storage_gc(void)
+{
+    uint32_t min_ec = 0xFFFFFFFFu;
+    uint16_t victim_idx = SECTOR_NONE;
+
+    for (uint16_t i = 0; i < W25Q_SECTOR_COUNT; i++)
+    {
+        if (slot_state[i] != SLOT_RECLAIM) continue;
+        if (erase_count[i] == 0xFFFFFFFFu) continue;
+
+        if (erase_count[i] < min_ec)
+        {
+            min_ec = erase_count[i];
+            victim_idx = i;
+        }
+    }
+
+    if (victim_idx == SECTOR_NONE)
+    {
+        return false;
+    }
+
+    uint32_t new_ec = erase_count[victim_idx] + 1;
+
+    if (!sector_recycle(victim_idx, new_ec))
+    {
+        // 但是问题是无法确定 recycle 函数是在哪个时间节点返回的 false。
+        // 不管了到时候再说吧
+        erase_count[victim_idx] = 0xFFFFFFFFu;   // 退役坏块,免得永远被重挑
+        return false;
+    }
+
+    slot_state[victim_idx] = SLOT_FREE;
+    erase_count[victim_idx] = new_ec;
+    free_count++;
+
+    if (new_ec > max_erase) max_erase = new_ec;
+
+    return true;
+}
 
 bool storage_save(uint16_t type, uint16_t instance, const void *data, size_t len)
 {
-    (void)type; (void)instance; (void)data; (void)len;
-    return false;
+    if (data == NULL || !(len >= 1 && len <= STORAGE_MAX_OBJECT_SIZE)) return false;
+
+    uint16_t item = directory_find(type, instance);
+    bool create = (item == DIR_NONE);
+
+    if (create && directory_count >= STORAGE_MAX_LIVE_OBJECTS)
+    {
+        return false;
+    }
+
+    uint16_t s_new = alloc_free_sector();
+    if (s_new == SECTOR_NONE)
+    {
+        if (!storage_gc()) return false;
+        s_new = alloc_free_sector();
+        if (s_new == SECTOR_NONE) return false;
+    }
+    free_count--;
+
+    uint32_t ec = erase_count[s_new];
+    uint32_t seq = next_seq++;
+
+    if (!sector_write_object(s_new, type, instance, seq, ec, data, len)) {
+        slot_state[s_new] = SLOT_RECLAIM;
+        return false;
+    }
+    if (!sector_verify_object(s_new)) {
+        slot_state[s_new] = SLOT_RECLAIM;
+        return false;
+    }
+    if (!sector_commit(s_new)) {
+        slot_state[s_new] = SLOT_RECLAIM;
+        return false;
+    }
+
+    slot_state[s_new] = SLOT_LIVE;
+
+    if (create)
+    {
+        item = directory_count++;
+        directory[item].type = type;
+        directory[item].instance = instance;
+    }
+    else
+    {
+        uint16_t s_old = directory[item].sector;
+        sector_mark_obsolete(s_old);
+        slot_state[s_old] = SLOT_RECLAIM;
+
+    }
+
+    directory[item].sector = s_new;
+    directory[item].sequence = seq;
+
+    return true;
 }
 
 int storage_load(uint16_t type, uint16_t instance, void *buf, size_t max_len)
 {
-    (void)type; (void)instance; (void)buf; (void)max_len;
-    return STORAGE_ERR_NOT_FOUND;
+    if (buf == NULL) return STORAGE_ERR_INVALID_PARAM;
+
+    uint16_t item = directory_find(type, instance);
+    if (item == DIR_NONE) return STORAGE_ERR_NOT_FOUND;
+
+    uint16_t s = directory[item].sector;
+    obj_header_t hdr;
+
+    if (!sector_read_obj_header(s, &hdr)) return STORAGE_ERR_IO;
+    if (hdr.payload_len > max_len) return STORAGE_ERR_INSUFFICIENT_SPACE;
+
+    if (!sector_verify_object(s)) return STORAGE_ERR_CORRUPT;
+
+    if (!sector_read_payload(s, 0, (uint8_t*) buf, hdr.payload_len)) return STORAGE_ERR_IO;
+
+    return hdr.payload_len;
 }
 
 bool storage_delete(uint16_t type, uint16_t instance)
 {
-    (void)type; (void)instance;
-    return false;
+    uint16_t item = directory_find(type, instance);
+    if (item == DIR_NONE) return false;
+
+    uint16_t s_old = directory[item].sector;
+    if (!sector_mark_obsolete(s_old)) return false;
+
+    slot_state[s_old] = SLOT_RECLAIM;
+
+    directory_count--;
+    if (item < directory_count)
+    {
+        directory[item] = directory[directory_count];
+    }
+
+    return true;
 }
 
 int storage_count(uint16_t type)
 {
-    (void)type;
-    return 0;
+    int count = 0;
+    for (uint16_t idx = 0; idx < directory_count; idx++)
+    {
+        if (directory[idx].type == type)
+        {
+            count++;
+        }
+    }
+    return count;
 }
 
 bool storage_enum(uint16_t type, size_t index, uint16_t *instance_out)
 {
-    (void)type; (void)index; (void)instance_out;
+    if (instance_out == NULL) return false;
+    size_t match = 0;
+    for (uint16_t idx = 0; idx < directory_count; idx++)
+        if (directory[idx].type == type) {
+            if (match == index)
+            {
+                *instance_out = directory[idx].instance; return true;
+            }
+            match++;
+        }
     return false;
 }
 
-/* ============================================================
- * 调试转储 —— bring-up 验证用
- * ============================================================ */
+bool storage_format(void)
+{
+    for (uint16_t i = 0; i < W25Q_SECTOR_COUNT; i++)
+    {
+        uint32_t magic, count;
+        /* 已是 virgin(全 0xFF)就跳过——省时间,也不白擦一次寿命 */
+        if (sector_read_preamble(i, &magic, &count)
+            && magic == SECTOR_MAGIC_BLANK && count == ERASE_COUNT_BLANK)
+        {
+            continue;
+        }
+        if (!w25q_erase_range((uint32_t)i * W25Q_SECTOR_SIZE, W25Q_SECTOR_SIZE))
+        {
+            return false;
+        }
+    }
+    return storage_mount();   /* 擦完重建 RAM:dir_count=0, free=2048 */
+}
 
 void storage_debug_dump(void)
 {

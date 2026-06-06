@@ -48,10 +48,11 @@
  * storage_load() return codes (>= 0 = bytes read; negative = failure)
  * ============================================================ */
 
-#define STORAGE_ERR_NOT_FOUND   (-1)   /* no such (type, instance)        */
-#define STORAGE_ERR_TOO_SMALL   (-2)   /* caller buffer smaller than payload */
-#define STORAGE_ERR_CORRUPT     (-3)   /* payload CRC mismatch            */
-#define STORAGE_ERR_IO          (-4)   /* flash read error                */
+#define STORAGE_ERR_NOT_FOUND              (-1)   /* no such (type, instance)        */
+#define STORAGE_ERR_INSUFFICIENT_SPACE     (-2)   /* caller buffer smaller than payload */
+#define STORAGE_ERR_CORRUPT                (-3)   /* payload CRC mismatch            */
+#define STORAGE_ERR_IO                     (-4)   /* flash read error                */
+#define STORAGE_ERR_INVALID_PARAM          (-5)   /* invalid parameter               */
 
 /* ============================================================
  * API
@@ -142,6 +143,12 @@ int storage_count(uint16_t type);
  * @return true if found; false if index out of range.
  */
 bool storage_enum(uint16_t type, size_t index, uint16_t *instance_out);
+
+/**
+ * @brief Clear everything except the erase count.
+ * @return true if wipe + remount successful, false if  flash error.
+ */
+bool storage_format(void);
 
 /**
  * @brief Print the mounted state to the debug console (directory

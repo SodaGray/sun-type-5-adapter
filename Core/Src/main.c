@@ -29,6 +29,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+
+#include "storage.h"
 #include "w25q.h"
 #include "sun_io.h"
 /* USER CODE END Includes */
