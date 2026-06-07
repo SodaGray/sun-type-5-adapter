@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include "cmsis_os2.h"
 
+#define PROTOCOL_BOOT   0
+#define PROTOCOL_REPORT 1
+
 /**
  * HID Boot Keyboard 状态。
  * Caller 拥有实例。详细设计见 hid_keyboard.c 注释。
