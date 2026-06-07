@@ -61,33 +61,39 @@ void hid_keyboard_reset(hid_keyboard_state_t *s)
 
 static void send_if_changed(hid_keyboard_state_t *s)
 {
-    uint8_t report[8] = {0};
-    report[0] = s->modifier_byte;
-    /* report[1] 保留字节，永远 0 */
+    uint8_t protocol = tud_hid_get_protocol();
+    uint8_t report_d[21] = {0};
+    report_d[0] = s->modifier_byte;
 
-    if (s->key_count > 6) {
-        /* Phantom state: 6 个槽全填 ErrorRollOver (0x01) */
-        for (int i = 2; i < 8; i++) {
-            report[i] = 0x01;
-        }
-    } else {
-        /* 扫位图，取前 6 个按下的键填进 byte[2..7] */
-        int slot = 2;
-        for (int usage = 0; usage < 256 && slot < 8; usage++) {
-            if (s->key_bitmap[usage / 8] & (1 << (usage % 8))) {
-                report[slot++] = usage;
+    if (protocol == PROTOCOL_REPORT)
+    {
+        memcpy(&report_d[1], s->key_bitmap, 20);
+    } else
+    {
+        if (s->key_count > 6) {
+            /* Phantom state: 6 个槽全填 ErrorRollOver (0x01) */
+            for (int i = 2; i < 8; i++) {
+                report_d[i] = 0x01;
+            }
+        } else {
+            /* 扫位图，取前 6 个按下的键填进 byte[2..7] */
+            int slot = 2;
+            for (int usage = 0; usage < 256 && slot < 8; usage++) {
+                if (s->key_bitmap[usage / 8] & (1 << (usage % 8))) {
+                    report_d[slot++] = usage;
+                }
             }
         }
     }
 
     /* Dedup：与上次发出的对比 */
-    if (memcmp(report, s->last_report, 8) == 0) {
+    if (memcmp(report_d, s->last_report, 21) == 0) {
         return;
     }
 
     /* 主机没接的话，更新 last_report 但不发，让后续真发的时候按"新状态"基线对比 */
     if (!tud_mounted()) {
-        memcpy(s->last_report, report, 8);
+        memcpy(s->last_report, report_d, 21);
         return;
     }
 
@@ -97,8 +103,14 @@ static void send_if_changed(hid_keyboard_state_t *s)
     }
 
     /* 通过 TinyUSB 发出。fire-and-forget，不查返回值。 */
-    tud_hid_keyboard_report(0, report[0], &report[2]);
+    if (protocol == PROTOCOL_REPORT)
+    {
+        tud_hid_report(0, report_d, 21);
+    } else
+    {
+        tud_hid_keyboard_report(0, report_d[0], &report_d[2]);
+    }
 
     /* 更新 dedup 基线 */
-    memcpy(s->last_report, report, 8);
+    memcpy(s->last_report, report_d, 21);
 }

@@ -436,5 +436,3 @@ void storage_debug_dump(void)
     }
     printf("==========================\r\n");
 }
-
-
