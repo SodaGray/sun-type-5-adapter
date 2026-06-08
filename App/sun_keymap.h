@@ -4,6 +4,7 @@
 #define SUN_KEYMAP_H
 
 #include <stdint.h>
+#include "class/hid/hid.h"
 
 /**
  * Sun scan code 映射到 HID 的语义种类。
