@@ -12,9 +12,9 @@
 static const sun_key_t keymap[128] = {
     /* 0x00 */ {SUN_KEY_KIND_NONE,     0                              },  /* unused */
     /* 0x01 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_STOP                   },  /* STOP */
-    /* 0x02 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_VOLUME_DOWN            },  /* VOL- UNIX ONLY*/
+    /* 0x02 */ {SUN_KEY_KIND_CONSUMER, HID_USAGE_CONSUMER_VOLUME_DECREMENT            },  /* VOL- UNIX ONLY*/
     /* 0x03 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_AGAIN                  },  /* AGAIN */
-    /* 0x04 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_VOLUME_UP              },  /* VOL+ UNIX ONLY*/
+    /* 0x04 */ {SUN_KEY_KIND_CONSUMER, HID_USAGE_CONSUMER_VOLUME_INCREMENT              },  /* VOL+ UNIX ONLY*/
     /* 0x05 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F1                     },  /* F1 */
     /* 0x06 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F2                     },  /* F2 */
     /* 0x07 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F10                    },  /* F10 */
@@ -55,10 +55,10 @@ static const sun_key_t keymap[128] = {
     /* 0x2A */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_GRAVE                  },  /* ACCENT (`) */
     /* 0x2B */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_BACKSPACE              },  /* BKSPC */
     /* 0x2C */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_INSERT                 },  /* INS */
-    /* 0x2D */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_MUTE                   },  /* MUTE UNIX ONLY*/
+    /* 0x2D */ {SUN_KEY_KIND_KEYBOARD, HID_USAGE_CONSUMER_MUTE                   },  /* MUTE UNIX ONLY*/
     /* 0x2E */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_KEYPAD_DIVIDE          },  /* DIV (Keypad /) */
     /* 0x2F */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_KEYPAD_MULTIPLY        },  /* MUL (Keypad *) */
-    /* 0x30 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_POWER                  },  /* POWER UNIX ONLY*/
+    /* 0x30 */ {SUN_KEY_KIND_SYSTEM,   HID_USAGE_DESKTOP_SYSTEM_POWER_DOWN                  },  /* POWER UNIX ONLY*/
     /* 0x31 */ {SUN_KEY_KIND_NONE,     0                              },  /* FRONT (unmapped) */
     /* 0x32 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_KEYPAD_DECIMAL         },  /* DOT (Keypad .) */
     /* 0x33 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_COPY                   },  /* COPY */

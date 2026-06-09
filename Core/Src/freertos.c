@@ -30,6 +30,7 @@
 #include "sun_protocol.h"
 #include "sun_keymap.h"
 #include "hid_keyboard.h"
+#include "hid_extra.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -222,9 +223,10 @@ void StartSunKeyboardTask(void *argument)
               hid_keyboard_press_modifier(&kbd, (uint8_t)k.code);
               break;
             case SUN_KEY_KIND_CONSUMER:
+              hid_keyboard_press_consumer(&kbd, (uint16_t)k.code);
+              break;
             case SUN_KEY_KIND_SYSTEM:
-              /* TODO Phase 5+: 实现 hid_consumer / hid_system 模块 */
-              printf("UNIMPL kind=%d code=0x%04X\r\n", k.kind, k.code);
+              hid_keyboard_press_system(&kbd, (uint8_t)k.code);
               break;
             case SUN_KEY_KIND_NONE:
               break;
@@ -242,8 +244,10 @@ void StartSunKeyboardTask(void *argument)
               hid_keyboard_release_modifier(&kbd, (uint8_t)k.code);
               break;
             case SUN_KEY_KIND_CONSUMER:
+              hid_keyboard_release_consumer(&kbd);
+              break;
             case SUN_KEY_KIND_SYSTEM:
-              /* TODO Phase 5+ */
+              hid_keyboard_release_system(&kbd, (uint8_t)k.code);
               break;
             case SUN_KEY_KIND_NONE:
               break;
@@ -254,7 +258,8 @@ void StartSunKeyboardTask(void *argument)
         case SUN_EVENT_ALL_KEYS_UP:
         case SUN_EVENT_RESET:
           hid_keyboard_reset(&kbd);
-          /* TODO Phase 5+: 同时 reset hid_consumer_state, hid_system_state */
+          hid_keyboard_reset_consumer(&kbd);
+          hid_keyboard_reset_system(&kbd);
           break;
 
         case SUN_EVENT_UNKNOWN:

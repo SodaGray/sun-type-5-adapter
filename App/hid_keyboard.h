@@ -21,7 +21,9 @@ typedef struct {
     uint8_t modifier_byte;
     uint8_t key_bitmap[32];    /* 256-bit 位图：bit n = HID Usage n 是否按下 */
     uint8_t key_count;
-    uint8_t last_report[8];
+    uint8_t last_report[21];
+    uint16_t consumer_usage;
+    uint8_t  system_bitmap;
 } hid_keyboard_state_t;
 
 void hid_keyboard_init(hid_keyboard_state_t *s);
