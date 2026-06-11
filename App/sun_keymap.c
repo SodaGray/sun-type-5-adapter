@@ -25,7 +25,7 @@ static const sun_key_t keymap[128] = {
     /* 0x0C */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F5                     },  /* F5 */
     /* 0x0D */ {SUN_KEY_KIND_MODIFIER, KEYBOARD_MODIFIER_RIGHTALT     },  /* ALTGR (RAlt -> modifier bit 6) */
     /* 0x0E */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F6                     },  /* F6 */
-    /* 0x0F */ {SUN_KEY_KIND_NONE,     0                              },  /* BLANK (unused) */
+    /* 0x0F */ {SUN_KEY_KIND_INTERNAL, 0                              },  /* BLANK (reserved) */
     /* 0x10 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F7                     },  /* F7 */
     /* 0x11 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F8                     },  /* F8 */
     /* 0x12 */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_F9                     },  /* F9 */

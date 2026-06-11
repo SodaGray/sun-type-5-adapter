@@ -190,6 +190,18 @@ void StartUsbTask(void *argument)
 }
 
 /**
+ * @brief One-shot timer callback. Runs in the RTOS timer service task, NOT in
+ * the keyboard task — so it only signals via a thread flag and touches
+ * no shared state. The keyboard task does the actual mode change.
+ *
+ */
+static void longpress_cb(void *arg)
+{
+  (void) arg;
+  osThreadFlagsSet(sunKeyboardTaskHandle, NOTIFY_SETTINGS_ENTER);
+}
+
+/**
  * @brief Start the keyboard task
  *
  * Drains the ring buffer.
@@ -199,14 +211,24 @@ void StartSunKeyboardTask(void *argument)
   (void)argument;
   sun_protocol_t parser;
   hid_keyboard_state_t kbd;
+  bool settings_mode = false;
+  osTimerId_t longpress_timer = osTimerNew(longpress_cb, osTimerOnce, NULL, NULL);
+
   sun_protocol_init(&parser);
   hid_keyboard_init(&kbd);
 
   for (;;) {
     uint32_t flags = osThreadFlagsWait(
-        SUN_IO_NOTIFY_RX_AVAILABLE | SUN_IO_NOTIFY_LED_PENDING | SUN_IO_NOTIFY_RESET_PENDING,
+        SUN_IO_NOTIFY_RX_AVAILABLE | SUN_IO_NOTIFY_LED_PENDING | SUN_IO_NOTIFY_RESET_PENDING
+        | NOTIFY_SETTINGS_ENTER,
         osFlagsWaitAny,
         osWaitForever);
+
+    if (flags & NOTIFY_SETTINGS_ENTER)
+    {
+      settings_mode = true;
+      sun_io_set_raw_led(0x0F);   /* all four keyboard LEDs on = in settings mode */
+    }
 
     if (flags & SUN_IO_NOTIFY_RX_AVAILABLE)
     {
@@ -217,6 +239,13 @@ void StartSunKeyboardTask(void *argument)
 
         case SUN_EVENT_MAKE: {
             sun_key_t k = sun_keymap_lookup(ev.data);
+
+            if (settings_mode) {
+              settings_mode = false;          /* current stage: ANY key exits */
+              sun_io_flush_led();             /* restore the host's LED state */
+              break;
+            }
+
             switch (k.kind) {
             case SUN_KEY_KIND_KEYBOARD:
               hid_keyboard_press_key(&kbd, (uint8_t)k.code);
@@ -230,6 +259,9 @@ void StartSunKeyboardTask(void *argument)
             case SUN_KEY_KIND_SYSTEM:
               hid_keyboard_press_system(&kbd, (uint8_t)k.code);
               break;
+            case SUN_KEY_KIND_INTERNAL:
+              osTimerStart(longpress_timer, 500U);   /* arm long-press (~1.5s @ 1ms tick) */
+              break;
             case SUN_KEY_KIND_NONE:
               break;
             }
@@ -238,6 +270,11 @@ void StartSunKeyboardTask(void *argument)
 
         case SUN_EVENT_BREAK: {
             sun_key_t k = sun_keymap_lookup(ev.data);
+
+            if (settings_mode) {
+              break;                          /* captured */
+            }
+
             switch (k.kind) {
             case SUN_KEY_KIND_KEYBOARD:
               hid_keyboard_release_key(&kbd, (uint8_t)k.code);
@@ -250,6 +287,9 @@ void StartSunKeyboardTask(void *argument)
               break;
             case SUN_KEY_KIND_SYSTEM:
               hid_keyboard_release_system(&kbd, (uint8_t)k.code);
+              break;
+            case SUN_KEY_KIND_INTERNAL:
+              osTimerStop(longpress_timer);   /* released within 1.5s = short press, cancel */
               break;
             case SUN_KEY_KIND_NONE:
               break;
@@ -271,7 +311,7 @@ void StartSunKeyboardTask(void *argument)
       }
     }
 
-    if (flags & SUN_IO_NOTIFY_LED_PENDING)
+    if ((flags & SUN_IO_NOTIFY_LED_PENDING) && !settings_mode)
     {
       sun_io_flush_led();
     }

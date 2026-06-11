@@ -16,6 +16,7 @@
 #define SUN_IO_NOTIFY_RX_AVAILABLE   (1u << 0)
 #define SUN_IO_NOTIFY_LED_PENDING    (1u << 1)
 #define SUN_IO_NOTIFY_RESET_PENDING  (1u << 2)
+#define NOTIFY_SETTINGS_ENTER        (1u << 3)   /* 长按计时器烧到 → 进设置模式 */
 
 /**
  * @brief Initialize the Sun keyboard input subsystem.
@@ -86,6 +87,13 @@ void sun_io_request_led(uint8_t hid_led_bitmap);
  * one command reflecting the latest requested state.
  */
 void sun_io_flush_led(void);
+
+/**
+ * Directly set Sun LED Bitmap.
+ * @param sun_bitmap 0=NumLock 1=Compose 2=ScrollLock 3=CapsLock 0x0F = full
+ * 仅限任务上下文，阻塞式 UART 发送。
+ */
+void sun_io_set_raw_led(uint8_t sun_bitmap);
 
 /**
  * Request a Sun reset command (0x01) be sent to the keyboard.

@@ -19,8 +19,9 @@ typedef enum {
     SUN_KEY_KIND_NONE,      /* 未映射；调度器静默忽略 */
     SUN_KEY_KIND_KEYBOARD,  /* HID Keyboard/Keypad Page 0x07；code = 8-bit Usage */
     SUN_KEY_KIND_MODIFIER,  /* Keyboard 报告 byte[0]；code = 位掩码 (1 << bit) */
-    SUN_KEY_KIND_CONSUMER,  /* HID Consumer Control Page 0x0C；code = 16-bit Usage。未实现 */
-    SUN_KEY_KIND_SYSTEM,    /* HID Generic Desktop System Control；code = Usage。未实现 */
+    SUN_KEY_KIND_CONSUMER,  /* HID Consumer Control Page 0x0C；code = 16-bit Usage。 */
+    SUN_KEY_KIND_SYSTEM,    /* HID Generic Desktop System Control；code = Usage。 */
+    SUN_KEY_KIND_INTERNAL,  /* Reserved for internal use. */
 } sun_key_kind_t;
 
 /**
