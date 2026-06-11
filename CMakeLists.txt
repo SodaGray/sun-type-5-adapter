@@ -81,6 +81,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/storage.c
         App/usb_mode.c
         App/hid_extra.c
+        App/registry.c
 )
 
 # Add include paths
