@@ -176,6 +176,7 @@ void StartUsbTask(void *argument)
     .role  = TUSB_ROLE_DEVICE,
     .speed = TUSB_SPEED_AUTO
   };
+  usb_mode_init();
   tusb_init(0, &dev_init);
 
   USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;

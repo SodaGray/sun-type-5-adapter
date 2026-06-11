@@ -27,6 +27,7 @@
 #include "tusb.h"
 #include "sun_io.h"
 #include "usb_descriptors.h"
+#include "usb_mode.h"
 
 /*
  * PREREQUISITE: tusb_config.h に CFG_TUD_HID = 2 を設定すること。
@@ -152,10 +153,9 @@ static uint8_t const desc_configuration_full[] =
 uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 {
   (void) index;
-  /* TODO (step 3): return desc_configuration_basic or desc_configuration_full
-   * based on usb_mode_get() once the mode-switching layer is in place.
-   * For now, hardcode full to test the composite descriptor. */
-  return desc_configuration_full;
+  return (usb_mode_get() == USB_MODE_FULL)
+           ? desc_configuration_full
+           : desc_configuration_basic;
 }
 
 //--------------------------------------------------------------------+
