@@ -31,6 +31,7 @@
 #include "sun_keymap.h"
 #include "hid_keyboard.h"
 #include "hid_extra.h"
+#include "usb_mode.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
