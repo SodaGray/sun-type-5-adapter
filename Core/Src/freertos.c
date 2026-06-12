@@ -32,6 +32,9 @@
 #include "hid_keyboard.h"
 #include "hid_extra.h"
 #include "usb_mode.h"
+#include "settings.h"
+#include "storage.h"
+#include "registry.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -177,7 +180,10 @@ void StartUsbTask(void *argument)
     .role  = TUSB_ROLE_DEVICE,
     .speed = TUSB_SPEED_AUTO
   };
-  usb_mode_init();
+
+  storage_mount();        /* 挂载 flash 对象存储（开机仅一次） */
+  registry_init();        /* 把持久化设置读进 RAM 缓存 */
+  usb_mode_init();        /* 据此设定当前模式 */
   tusb_init(0, &dev_init);
 
   USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;
@@ -199,6 +205,14 @@ static void longpress_cb(void *arg)
 {
   (void) arg;
   osThreadFlagsSet(sunKeyboardTaskHandle, NOTIFY_SETTINGS_ENTER);
+}
+
+static void settings_blink_error(void)
+{
+  for (int i = 0; i < 4; i++) {
+    sun_io_set_raw_led(0x00); osDelay(50);
+    sun_io_set_raw_led(0x0F); osDelay(50);   /* 收在全亮，回到设置模式常态 */
+  }
 }
 
 /**
@@ -230,6 +244,12 @@ void StartSunKeyboardTask(void *argument)
       sun_io_set_raw_led(0x0F);   /* all four keyboard LEDs on = in settings mode */
     }
 
+    if (flags & NOTIFY_SETTINGS_ENTER) {
+      settings_mode = true;
+      settings_enter();              /* 复位状态机到顶层 */
+      sun_io_set_raw_led(0x0F);
+    }
+
     if (flags & SUN_IO_NOTIFY_RX_AVAILABLE)
     {
       uint8_t byte;
@@ -241,9 +261,26 @@ void StartSunKeyboardTask(void *argument)
             sun_key_t k = sun_keymap_lookup(ev.data);
 
             if (settings_mode) {
-              settings_mode = false;          /* current stage: ANY key exits */
-              sun_io_flush_led();             /* restore the host's LED state */
-              break;
+              switch (settings_key(k)) {
+              case SETTINGS_CONTINUE:
+                break;                              /* 留下，无反馈 */
+              case SETTINGS_ERROR:
+                settings_blink_error();             /* 闪三次，留下 */
+                break;
+              case SETTINGS_DONE:
+                sun_io_set_raw_led(0x00);
+                osDelay(250);
+                sun_io_set_raw_led(0x0F);
+                osDelay(750);                        /* 全亮 500ms = 成功 */
+                settings_mode = false;
+                sun_io_flush_led();                  /* 恢复主机 LED */
+                break;
+              case SETTINGS_CANCEL:
+                settings_mode = false;
+                sun_io_flush_led();
+                break;
+              }
+              break;                                   /* 不落入正常按键分发 */
             }
 
             switch (k.kind) {

@@ -5,6 +5,7 @@
 #include "usb_mode.h"
 #include "tusb.h"
 #include "cmsis_os2.h"
+#include "registry.h"
 
 static usb_mode_t s_mode = USB_MODE_BASIC;
 
@@ -22,7 +23,7 @@ static void usb_reenumerate(void)
 
 void usb_mode_init(void)
 {
-    s_mode = USB_MODE_BASIC;   /* step 4: 改为从存储层读上次的选择 */
+    s_mode = (usb_mode_t) registry()->usb_mode;  /* 从注册表读取模式信息 */
 }
 
 usb_mode_t usb_mode_get(void)
@@ -32,7 +33,9 @@ usb_mode_t usb_mode_get(void)
 
 void usb_mode_set(usb_mode_t mode)
 {
-    if (mode == s_mode) return;   /* 没变，不动，不必打扰主机 */
-    s_mode = mode;                /* 先翻转：重连后回调读到的就是新值 */
-    usb_reenumerate();
+    if (mode == s_mode) return;                /* 没变，什么都不做 */
+    s_mode = mode;
+    registry()->usb_mode = (uint8_t) mode;     /* 先记下意图 */
+    registry_save();                           /* 落盘 */
+    usb_reenumerate();                          /* 再当场生效 */
 }
