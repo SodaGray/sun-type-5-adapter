@@ -119,3 +119,13 @@ void sun_io_flush_reset(void)
 {
     HAL_UART_Transmit(&huart1, &(uint8_t){0x01}, 1, HAL_MAX_DELAY);
 }
+
+void sun_io_bell_on(void)
+{
+    HAL_UART_Transmit(&huart1, &(uint8_t){0x02}, 1, HAL_MAX_DELAY);
+}
+
+void sun_io_bell_off(void)
+{
+    HAL_UART_Transmit(&huart1, &(uint8_t){0x03}, 1, HAL_MAX_DELAY);
+}

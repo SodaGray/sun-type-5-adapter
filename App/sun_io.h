@@ -112,4 +112,8 @@ void sun_io_request_reset(void);
  */
 void sun_io_flush_reset(void);
 
+void sun_io_bell_on(void);
+
+void sun_io_bell_off(void);
+
 #endif /* SUN_IO_H */
