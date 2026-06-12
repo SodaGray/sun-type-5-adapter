@@ -7,6 +7,7 @@
 
 static const registry_t REGISTRY_DEFAULTS = {
     .usb_mode = USB_MODE_BASIC,   /* 需 #include "usb_mode.h" */
+    .click_enabled = 0,
 };
 
 static registry_t cache;

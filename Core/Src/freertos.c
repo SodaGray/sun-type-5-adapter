@@ -339,12 +339,17 @@ void StartSunKeyboardTask(void *argument)
         }
 
         case SUN_EVENT_ALL_KEYS_UP:
-        case SUN_EVENT_RESET:
           hid_keyboard_reset(&kbd);
           hid_keyboard_reset_consumer(&kbd);
           hid_keyboard_reset_system(&kbd);
           break;
 
+        case SUN_EVENT_RESET:
+          hid_keyboard_reset(&kbd);
+          hid_keyboard_reset_consumer(&kbd);
+          hid_keyboard_reset_system(&kbd);
+          click_init();    /* 键盘复位会忘掉点击状态，重下发我们存的 */
+          break;
         case SUN_EVENT_UNKNOWN:
         case SUN_EVENT_NONE:
           break;

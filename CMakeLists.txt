@@ -83,6 +83,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/hid_extra.c
         App/registry.c
         App/settings.c
+        App/click.c
 )
 
 # Add include paths

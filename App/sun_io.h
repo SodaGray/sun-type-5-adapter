@@ -116,4 +116,7 @@ void sun_io_bell_on(void);
 
 void sun_io_bell_off(void);
 
+void sun_io_click_on(void);
+
+void sun_io_click_off(void);
 #endif /* SUN_IO_H */

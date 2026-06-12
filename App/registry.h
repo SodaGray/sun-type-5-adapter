@@ -37,6 +37,7 @@
 //
 typedef struct {
     uint8_t usb_mode;   // usb_mode_t; default = USB_MODE_BASIC
+    uint8_t click_enabled;
     // ── append new settings below this line only ──
 } registry_t;
 

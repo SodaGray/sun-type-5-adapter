@@ -9,6 +9,7 @@
 typedef enum {
     ST_SELECT,         /* 等 F1..F12 选设置项 */
     ST_KBDMODE_VALUE,  /* 已选 F1：等 0/1 */
+    ST_CLICK_VALUE,      /* 已选 F2：等 0/1 */
 } settings_state_t;
 
 static settings_state_t s_state;
@@ -26,7 +27,11 @@ settings_result_t settings_key(sun_key_t k)
             s_state = ST_KBDMODE_VALUE;
             return SETTINGS_CONTINUE;       /* 选中键盘模式，静默进下一步 */
         }
-        /* 将来 F2..F12 在这里各自分支 */
+        if (k.kind == SUN_KEY_KIND_KEYBOARD && k.code == HID_KEY_F2) {
+            s_state = ST_CLICK_VALUE;
+            return SETTINGS_CONTINUE;
+        }
+        /* 将来 F3..F12 在这里各自分支 */
         return SETTINGS_ERROR;              /* 顶层只认 F 键，其余都是误触 */
 
     case ST_KBDMODE_VALUE:
@@ -37,6 +42,15 @@ settings_result_t settings_key(sun_key_t k)
             return SETTINGS_DONE;
         }
         return SETTINGS_ERROR;
+    case ST_CLICK_VALUE: {
+            bool one  = (k.code == HID_KEY_1 || k.code == HID_KEY_KEYPAD_1);
+            bool zero = (k.code == HID_KEY_0 || k.code == HID_KEY_KEYPAD_0);
+            if (k.kind == SUN_KEY_KIND_KEYBOARD && (one || zero)) {
+                click_set(one);          /* 1 开，0 关 */
+                return SETTINGS_DONE;
+            }
+            return SETTINGS_ERROR;
+    }
     }
     return SETTINGS_ERROR;                  /* 防御 */
 }
