@@ -12,7 +12,7 @@
 /* 喂一个按键给状态机后的结果。调用方（键盘任务）据此做 LED 反馈、
  * 并决定留在还是离开设置模式。 */
 typedef enum {
-    SETTINGS_CONTINUE,   /* 有效输入，进了一步 —— 留下，无反馈        */
+    SETTINGS_CONTINUE,   /* 有效输入，进了一步 —— 留下，无反馈         */
     SETTINGS_ERROR,      /* 意料外的键 —— 留下，快闪三次              */
     SETTINGS_DONE,       /* 设置已应用 —— 全亮 500ms，然后退出        */
     SETTINGS_CANCEL,     /* 空白键 —— 放弃更改，直接退出              */
