@@ -7,6 +7,7 @@
 
 #include "sun_keymap.h"   /* sun_key_t */
 #include "click.h"
+#include "registry.h"
 
 /* 喂一个按键给状态机后的结果。调用方（键盘任务）据此做 LED 反馈、
  * 并决定留在还是离开设置模式。 */

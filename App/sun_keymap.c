@@ -55,7 +55,7 @@ static const sun_key_t keymap[128] = {
     /* 0x2A */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_GRAVE                  },  /* ACCENT (`) */
     /* 0x2B */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_BACKSPACE              },  /* BKSPC */
     /* 0x2C */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_INSERT                 },  /* INS */
-    /* 0x2D */ {SUN_KEY_KIND_KEYBOARD, HID_USAGE_CONSUMER_MUTE                   },  /* MUTE UNIX ONLY*/
+    /* 0x2D */ {SUN_KEY_KIND_KEYBOARD, HID_USAGE_CONSUMER_MUTE        },  /* MUTE UNIX ONLY*/
     /* 0x2E */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_KEYPAD_DIVIDE          },  /* DIV (Keypad /) */
     /* 0x2F */ {SUN_KEY_KIND_KEYBOARD, HID_KEY_KEYPAD_MULTIPLY        },  /* MUL (Keypad *) */
     /* 0x30 */ {SUN_KEY_KIND_SYSTEM,   HID_USAGE_DESKTOP_SYSTEM_POWER_DOWN                  },  /* POWER UNIX ONLY*/

@@ -209,11 +209,12 @@ static void longpress_cb(void *arg)
 
 static void settings_blink_error(void)
 {
+  bool sound = (registry()->feedback_sound != 0);
   for (int i = 0; i < 4; i++) {
     sun_io_set_raw_led(0x00); osDelay(50);
-    sun_io_bell_off();
+    if (sound) sun_io_bell_off();
     sun_io_set_raw_led(0x0F); osDelay(50);   /* 收在全亮，回到设置模式常态 */
-    if (i != 3) sun_io_bell_on();
+    if (i != 3)  if (sound) sun_io_bell_on();
   }
 }
 
@@ -228,6 +229,7 @@ void StartSunKeyboardTask(void *argument)
   sun_protocol_t parser;
   hid_keyboard_state_t kbd;
   bool settings_mode = false;
+  bool sound = (registry()->feedback_sound != 0);
   osTimerId_t longpress_timer = osTimerNew(longpress_cb, osTimerOnce, NULL, NULL);
 
   sun_protocol_init(&parser);
@@ -273,9 +275,9 @@ void StartSunKeyboardTask(void *argument)
                 sun_io_set_raw_led(0x00);
                 osDelay(250);
                 sun_io_set_raw_led(0x0F);
-                sun_io_bell_on();
+                if (sound) sun_io_bell_on();
                 osDelay(750);
-                sun_io_bell_off();
+                if (sound) sun_io_bell_off();
                 settings_mode = false;
                 sun_io_flush_led();                  /* 恢复主机 LED */
                 break;

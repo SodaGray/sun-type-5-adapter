@@ -21,6 +21,18 @@ settings_result_t settings_key(sun_key_t k)
     /* 空白键 = 全局取消，任何状态都认 */
     if (k.kind == SUN_KEY_KIND_INTERNAL) return SETTINGS_CANCEL;
 
+    /* 静音键 = 切换我们的声音，任何状态都认 */
+    if (k.kind == SUN_KEY_KIND_KEYBOARD && k.code == HID_USAGE_CONSUMER_MUTE) {
+        if (registry()->feedback_sound) {        /* 开 → 关 */
+            registry()->feedback_sound = 0;      /* 先设这个 */
+            click_set(false);                    /* 静音时连点击一起关：F2→0 + 当场关 + 落盘 */
+        } else {                                  /* 关 → 开 */
+            registry()->feedback_sound = 1;      /* 只把提示音放回来，不动点击 */
+            registry_save();
+        }
+        return SETTINGS_CONTINUE;
+    }
+
     switch (s_state) {
     case ST_SELECT:
         if (k.kind == SUN_KEY_KIND_KEYBOARD && k.code == HID_KEY_F1) {
