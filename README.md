@@ -130,6 +130,7 @@ STM32CubeIDE / CubeMX 工程。应用代码在 `App/` 下;`freertos.c` 的改动
 - 核实跨任务重枚举：`usb_mode_set` 是从键盘任务里调的，会在非 USB 任务上下文里碰 TinyUSB;若不稳，改成发 flag 给 USB 任务、由它在 `tud_task` 那边断开重连。
 - 个人产品版（STM32U5A5ZJ）：无线协处理器、nRF24L01+、VFD 等。
 
+---
 
 Sun， Sun Microsystems， and Sun Type 5 are trademarks or registered trademarks of Oracle and/or its affiliates.
 
