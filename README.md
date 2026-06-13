@@ -108,6 +108,7 @@ storage_mount（） → registry_init（） → usb_mode_init（） → tusb_ini
 **已知问题**：
 - Apple Fn 键不太能移植的过来。
 - 不知道是物理层的电平还是什么的问题，有时候会出现漏键、错键的问题。
+- 每次烧写以后都需要手动按一下 User 按键，不太优雅，但也无关紧要。
 
 往后：
 - 个人产品版（STM32U5A5ZJ）：无线协处理器、nRF24L01+、VFD 等。
