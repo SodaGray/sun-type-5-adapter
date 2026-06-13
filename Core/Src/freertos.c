@@ -35,6 +35,7 @@
 #include "settings.h"
 #include "storage.h"
 #include "registry.h"
+#include "remap.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -183,6 +184,7 @@ void StartUsbTask(void *argument)
 
   storage_mount();        /* 挂载 flash 对象存储（开机仅一次） */
   registry_init();        /* 把持久化设置读进 RAM 缓存 */
+  remap_init();        /* 载入重映射覆盖表 */
   usb_mode_init();        /* 据此设定当前模式 */
   tusb_init(0, &dev_init);
 
@@ -218,6 +220,31 @@ static void settings_blink_error(void)
   }
 }
 
+static void settings_apply_result(settings_result_t r, bool *settings_mode)
+{
+  switch (r) {
+  case SETTINGS_CONTINUE:
+    break;
+  case SETTINGS_ERROR:
+    settings_blink_error();
+    break;
+  case SETTINGS_DONE:
+    sun_io_set_raw_led(0x00);
+    osDelay(250);
+    sun_io_set_raw_led(0x0F);
+    if (registry()->feedback_sound) sun_io_bell_on();
+    osDelay(750);
+    if (registry()->feedback_sound) sun_io_bell_off();
+    *settings_mode = false;
+    sun_io_flush_led();
+    break;
+  case SETTINGS_CANCEL:
+    *settings_mode = false;
+    sun_io_flush_led();
+    break;
+  }
+}
+
 /**
  * @brief Start the keyboard task
  *
@@ -229,7 +256,6 @@ void StartSunKeyboardTask(void *argument)
   sun_protocol_t parser;
   hid_keyboard_state_t kbd;
   bool settings_mode = false;
-  bool sound = (registry()->feedback_sound != 0);
   osTimerId_t longpress_timer = osTimerNew(longpress_cb, osTimerOnce, NULL, NULL);
 
   sun_protocol_init(&parser);
@@ -241,12 +267,6 @@ void StartSunKeyboardTask(void *argument)
         | NOTIFY_SETTINGS_ENTER,
         osFlagsWaitAny,
         osWaitForever);
-
-    if (flags & NOTIFY_SETTINGS_ENTER)
-    {
-      settings_mode = true;
-      sun_io_set_raw_led(0x0F);   /* all four keyboard LEDs on = in settings mode */
-    }
 
     if (flags & NOTIFY_SETTINGS_ENTER) {
       settings_mode = true;
@@ -265,28 +285,16 @@ void StartSunKeyboardTask(void *argument)
             sun_key_t k = sun_keymap_lookup(ev.data);
 
             if (settings_mode) {
-              switch (settings_key(k)) {
-              case SETTINGS_CONTINUE:
-                break;                              /* 留下，无反馈 */
-              case SETTINGS_ERROR:
-                settings_blink_error();             /* 闪三次，留下 */
-                break;
-              case SETTINGS_DONE:
-                sun_io_set_raw_led(0x00);
-                osDelay(250);
-                sun_io_set_raw_led(0x0F);
-                if (sound) sun_io_bell_on();
-                osDelay(750);
-                if (sound) sun_io_bell_off();
-                settings_mode = false;
-                sun_io_flush_led();                  /* 恢复主机 LED */
-                break;
-              case SETTINGS_CANCEL:
-                settings_mode = false;
-                sun_io_flush_led();
-                break;
-              }
-              break;                                   /* 不落入正常按键分发 */
+              settings_apply_result(settings_key(ev.data, k), &settings_mode);
+              break;
+            }
+
+            const remap_target_t *rt = remap_lookup(ev.data);   /* 重映射优先 */
+            if (rt) {
+              hid_keyboard_press_modifier(&kbd, rt->modifiers);
+              for (uint8_t n = 0; n < rt->key_count; n++)
+                hid_keyboard_press_key(&kbd, rt->keys[n]);
+              break;
             }
 
             switch (k.kind) {
@@ -315,7 +323,15 @@ void StartSunKeyboardTask(void *argument)
             sun_key_t k = sun_keymap_lookup(ev.data);
 
             if (settings_mode) {
-              break;                          /* captured */
+              break;
+            }
+
+            const remap_target_t *rt = remap_lookup(ev.data);
+            if (rt) {
+              for (uint8_t n = 0; n < rt->key_count; n++)
+                hid_keyboard_release_key(&kbd, rt->keys[n]);
+              hid_keyboard_release_modifier(&kbd, rt->modifiers);
+              break;
             }
 
             switch (k.kind) {
@@ -341,9 +357,13 @@ void StartSunKeyboardTask(void *argument)
         }
 
         case SUN_EVENT_ALL_KEYS_UP:
-          hid_keyboard_reset(&kbd);
-          hid_keyboard_reset_consumer(&kbd);
-          hid_keyboard_reset_system(&kbd);
+          if (settings_mode) {
+            settings_apply_result(settings_all_keys_up(), &settings_mode);
+          } else {
+            hid_keyboard_reset(&kbd);
+            hid_keyboard_reset_consumer(&kbd);
+            hid_keyboard_reset_system(&kbd);
+          }
           break;
 
         case SUN_EVENT_RESET:

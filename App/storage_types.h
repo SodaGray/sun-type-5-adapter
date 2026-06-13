@@ -7,6 +7,7 @@
 
 typedef enum {
     STORAGE_TYPE_REGISTRY = 1,   // device settings registry (instance 0)
+    STORAGE_TYPE_KEYMAP   = 2,   /* 一键一对象；instance = 源扫描码 */
 
 } storage_type_t;
 

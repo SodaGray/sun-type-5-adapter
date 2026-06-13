@@ -33,6 +33,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include "sector_io.h"   /* MAX_PAYLOAD_SIZE, W25Q geometry */
+#include "storage_types.h"
 
 /* ============================================================
  * Limits

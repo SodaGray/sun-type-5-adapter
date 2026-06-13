@@ -84,6 +84,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
         App/registry.c
         App/settings.c
         App/click.c
+        App/remap.c
 )
 
 # Add include paths
