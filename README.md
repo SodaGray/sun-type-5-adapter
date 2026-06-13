@@ -83,6 +83,7 @@ Sun Type 5 键盘使用私有串行协议，具有特殊的接口，无法在现
 | `settings`                                 | 设置模式状态机（F 键选择、取值、静音、取消）                                                   |
 | `freertos.c`                               | 两个任务 + 长按计时器 + 反馈帮手                                                       |
 | `remap`                                    | 按键重映射                                                                     |                                                                    |
+
 **任务：**
 - **usbTask**（realtime 优先级）—— 运行 `tud_task（）`，驱动 TinyUSB。
 - **sunKbd**（above-normal）—— 抽干环形缓冲、解码、分发：正常模式发 HID 报告，设置模式喂给状态机；并处理 LED 透传、reset、长按进入。
