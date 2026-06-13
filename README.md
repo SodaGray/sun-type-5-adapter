@@ -108,6 +108,8 @@ storage_mount（） → registry_init（） → usb_mode_init（） → tusb_ini
 往后：
 - 个人产品版（STM32U5A5ZJ）：无线协处理器、nRF24L01+、VFD 等。
 
+## 版权信息
+
 Sun, Sun Microsystems, and Sun Type 5 are trademarks or registered trademarks of Oracle and/or its affiliates.
 
 ST, STM32, and STM32Cube are trademarks or registered trademarks of STMicroelectronics International NV or its affiliates in the EU and/or elsewhere.
